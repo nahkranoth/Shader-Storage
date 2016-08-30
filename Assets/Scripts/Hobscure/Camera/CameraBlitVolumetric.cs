@@ -44,7 +44,8 @@ public class CameraBlitVolumetric : MonoBehaviour
 
     void Update()
     {
-        cam.transform.Rotate(new Vector3(0f, 1f, 0f));
+        material.SetFloat("_Seed", Time.time);
+        //cam.transform.Rotate(new Vector3(0f, 1f, 0f));
     }
 
     private void OnPreRender()
