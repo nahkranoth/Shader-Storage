@@ -1,4 +1,4 @@
-﻿Shader "Hobscure/Volumetric Clouds"
+﻿Shader "Hobscure/Volumetric Clouds 3"
 {
 	Properties
 	{
@@ -58,6 +58,30 @@
 				return o;
 			}
 
+			void rotateX(inout float3 p, float a) {
+				float3 q = p;
+				float c = cos(a);
+				float s = sin(a);
+				p.y = c * q.y - s * q.z;
+				p.z = s * q.y + c * q.z;
+			}
+
+			void rotateY(inout float3 p, float a) {
+				float3 q = p;
+				float c = cos(a);
+				float s = sin(a);
+				p.x = c * q.x + s * q.z;
+				p.z = -s * q.x + c * q.z;
+			}
+
+			void rotateZ(inout float3 p, float a) {
+				float3 q = p;
+				float c = cos(a);
+				float s = sin(a);
+				p.x = c * q.x - s * q.y;
+				p.y = s * q.x + c * q.y;
+			}
+
 			// Noise function by Inigo Quilez - https://www.shadertoy.com/view/4sfGzS
 			float noise(float3 x) { 
 				x *= 4.0; 
@@ -80,11 +104,12 @@
 				return f; 
 			}
 
+			float3 centerPoint = float3(0.5, 0.5, 0.5);
+
 			fixed4 frag(v2f i) : SV_Target
 			{
 				float2 uv = (i.uv - 0.5) * _FieldOfView;
 				uv.x *= _AspectRatio;
-
 				float3 ray = _CamUp * uv.y + _CamRight * uv.x + _CamForward;
 				float3 pos = _CamPos * 0.4;
 
@@ -94,29 +119,36 @@
 				float3 p = pos;
 				// For each iteration, we read from our noise function the density of our current position, and adds it to this density variable.
 				float density = 0;
+				float dis;
+				float3 clr;
 
 				for (float i = 0; i < _Iterations; i++)
 				{
 					// f gives a number between 0 and 1.
 					// We use that to fade our clouds in and out depending on how far and close from our camera we are.
 					float f = i / _Iterations;
-					// And here we do just that:
-					float alpha = smoothstep(0, _Iterations * 0.2, i) * (1 - f) * (1 - f);
-					// Note that smoothstep here doesn't do the same as Mathf.SmoothStep() in Unity C# - which is frustrating btw. Get a grip Unity!
-					// Smoothstep in shader languages interpolates between two values, given t, and returns a value between 0 and 1. 
-					// To get a bit of variety in our clouds we collect two different samples for each iteration.
-					float denseClouds = smoothstep(_CloudDensity, 0.75, fbm(p, 5));
-					float lightClouds = (smoothstep(-0.2, 1.2, fbm(p * 2, 12)) - 0.5) * 0.5;
+
+					dis = 1 - distance(p, centerPoint) * 0.36;
+
+					float alpha = smoothstep(0, _Iterations * 0.2, i) * (1 - f) * dis;
+
+					float denseClouds = smoothstep(1., 0.22, fbm(p, 25));
+
 					// Note that I smoothstep again to tell which range of the noise we should consider clouds.
 					// Here we add our result to our density variable
-					density += (lightClouds + denseClouds) * alpha;
+					density += (denseClouds * 0.52) * alpha;
 					// And then we move one step further away from the camera.
-					pos.y = _Seed;
 					p = pos + ray * f * _ViewDistance;
+
+					rotateX(p, _Seed * 0.1);
+					rotateY(p, _Seed * 0.2 + p.y);
+
 				}
-				// And here i just melted all our variables together with random numbers until I had something that looked good.
-				// You can try playing around with them too.
-				float3 color = _SkyColor + (_CloudColor.rgb - 0.5) * (density / _Iterations) * 20 * _CloudColor.a;
+
+				float red = (density  / _Iterations) * 30;
+				float green = 0;
+				float blue = (density / _Iterations) * 70;
+				float3 color = float3(red, green, blue);
 
 				return fixed4(color, 1);
 			}
