@@ -53,6 +53,7 @@
 				o.vertex = mul(UNITY_MATRIX_MVP, v.vertex);
 				o.screenuv = ((o.vertex.xy / o.vertex.w) + 1) / 2;
 				o.screenuv.y = 1 - o.screenuv.y;
+				//calculate depth
 				o.depth = -mul(UNITY_MATRIX_MV, v.vertex).z * _ProjectionParams.w;
 
 				o.uv = TRANSFORM_TEX(v.uv, _MainTex);
